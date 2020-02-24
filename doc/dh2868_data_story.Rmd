@@ -27,7 +27,7 @@ Then we shall load our processed lyrics.
 ```{r}
 load("../output/processed_lyrics.RData")
 
-artists <- read.csv("/Users/david/Desktop/AppliedDS/proj1/Spring2020-Project1-luthierman-master/data/artists.csv")
+artists <- read.csv("../data/artists.csv")
 ```
 
 
@@ -47,19 +47,56 @@ other_lyrics <- dt_lyrics %>%
   filter(artist %in% artists_60_70s$Artist & genre == "Rock" & artist != "beatles") 
 ```
 
+When comparing the number of stemmed words per song for each group, it seems that the Beatles have a lower average count (51) than similar rock bands (63).  This could imply that the beatles overal
+
+```{r}
+
+# the number of stemmed words in each song by group
+beatles.words_by_song <- sort(sapply(strsplit(beatles_lyrics$stemmedwords, " "), length))
+other.words_by_song <- sort(sapply(strsplit(other_lyrics$stemmedwords, " "), length))
+
+
+# mean, median, and spread
+summary(beatles.words_by_song)
+summary(other.words_by_song)
+
+# resulting plot
+boxplot(beatles.words_by_song, other.words_by_song, horizontal = T, names = c("beatles", "other"))
+
+```
+
+```{r}
+other.words_by_song <- other.words_by_song[other.words_by_song < max(other.words_by_song)]
+other.words_by_song <- other.words_by_song[other.words_by_song < max(other.words_by_song)]
+
+# mean, median, and spread
+summary(beatles.words_by_song)
+summary(other.words_by_song)
+
+# resulting plot
+boxplot(beatles.words_by_song, other.words_by_song, horizontal = T, names = c("beatles", "other"))
+```
+
+
+
 Next, I'll convert the given stemmed words into a corpus and then a term document matrix, since the data was already processed and cleaned.
 
 ```{r}
 # Created a function to streamline conversion to term document matrix
 
-stem_to_tdm <- function(x){
+stem_to_corpus <- function(x){
   source <- VectorSource(x)
   corpus <- VCorpus(source)
-  return (TermDocumentMatrix(corpus))
+  return (corpus)
 }
-# respective term document matrices
-beatles.tdm <- stem_to_tdm(beatles_lyrics$stemmedwords)
-other.tdm <- stem_to_tdm(other_lyrics$stemmedwords)
+
+# respective corpi
+beatles.corpus <- stem_to_corpus(beatles_lyrics$stemmedwords)
+other.corpus <- stem_to_corpus(other_lyrics$stemmedwords)
+# respective tdm
+beatles.tdm <- TermDocumentMatrix(beatles.corpus)
+other.tdm <- TermDocumentMatrix(other.corpus)
+
 #beatles.tdm <- removeSparseTerms(beatles.tdm, 0.99) # remove lower frequency terms
 #other.tdm <- removeSparseTerms(other.tdm, 0.99) # remove lower frequency terms
 
@@ -75,6 +112,11 @@ m.other <- as.matrix(other.tdm)
 f.other <- sort(rowSums(m.other), decreasing=T)
 other.word_freq<- data.frame(word= names(f.other), freq=f.other)
 ```
+
+
+
+
+
 
 Here are the respective word clouds.
 
@@ -107,7 +149,7 @@ Based on the top twenty words in the respective dataframes, it seems that there 
 The words for the most part seem synonymous with similar frequencies; though there is an exception for "cry" (possibly invoking a negative sentiment) which is the 10th most used word in the Beatles lyrics and 20th in other bands.
 
 
-The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words. Overall, the Beatles seem to have a relatively higher count of words than other over their respective data sets (bar plots and relative frequency table), but the distribution of other seems to have wider variation with more values being spread out amongst higher values.
+The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words. Ignoring the different words, overall, the Beatles seem to have a relatively higher count of words than other over their respective data sets (bar plots and relative frequency table), but the distribution of other seems to have wider variation with more values being spread out amongst higher values.
 
 ```{r}
 
@@ -126,6 +168,11 @@ data.table(cbind(beatles.rf20, other.rf20))
 # barplots with 
 barplot(beatles.rf20, las = 1,names.arg = head(beatles.word_freq$word, 20), col = rainbow(50), horiz = T )
 barplot(other.rf20, las = 2,names.arg = head(other.word_freq$word, 20), col = rainbow(50),horiz = T )
+
+```
+
+
+```{r}
 
 ```
 
