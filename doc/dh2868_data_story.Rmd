@@ -1,5 +1,5 @@
 ---
-title: "Beatles data_story"
+title: "Beatles Data Story"
 output:
   html_document:
     csl: style.cls
@@ -35,8 +35,8 @@ artists <- read.csv("../data/artists.csv")
 ```
 
 
-For this analysis, I'm focusing on the beatles within the larger subgroup of rock artists.  
-I'm splitting the data into beatles and non-beatles (formed around the same time) for comparison and contrast.
+For this analysis, I'm focusing on the beatles within the larger subgroup of rock artists formed between 1960 and 1970 (inclusive).  
+I'm splitting the data into beatles and non-beatles for comparison and contrast.
 
 ```{r}
 
@@ -51,7 +51,7 @@ other_lyrics <- dt_lyrics %>%
   filter(artist %in% artists_60_70s$Artist & genre == "Rock" & artist != "beatles") 
 ```
 
-When comparing the number of stemmed words per song for each group, it seems that the Beatles have a lower average count (51) than similar rock bands (63). But what if the other bands' distribution is skewed by outliers?
+When comparing the number of stemmed words per song for each group, it seems that the Beatles have a lower average count (51) than similar rock bands (63). 
 
 ```{r}
 # the number of stemmed words in each song by group
@@ -63,18 +63,22 @@ other.words_per_song <- sort(sapply(strsplit(other_lyrics$stemmedwords, " "), le
 summary(beatles.words_per_song)
 summary(other.words_per_song)
 
+
+
 # resulting plot
-boxplot(beatles.words_per_song, other.words_per_song, horizontal = T, names = c("beatles", "other"), col = "blue")
+hist(beatles.words_per_song, main = "Beatles Song lengths (by stemmed words)", xlab = "Number of words in a song", col = "blue", breaks = 100)
+hist(other.words_per_song, main = "Other Song lengths (by stemmed words)", xlab = "Number of words in a song", col = "red", breaks = 100)
+boxplot(beatles.words_per_song, other.words_per_song, horizontal = T, names = c("beatles", "other"), col = c("blue", "red"), xlab= "Number of words in a song")
 ```
 
-Even if we remove the higher outliers, the Beatles still have a lower average number of stemmed words. This may imply that Beatles' songs have on average shorter lyrics.
+But what if the other bands' distribution is skewed by outliers? Even if we remove the higher outliers, the Beatles still have a lower average number of stemmed words. This may imply that Beatles' songs have on average shorter lyrics.
 
 ```{r}
 
 
 # finding outliers for each group
-outliers1 <- boxplot(beatles.words_per_song)$out
-outliers2 <- boxplot(other.words_per_song)$out
+outliers1 <- boxplot(beatles.words_per_song, plot = F)$out
+outliers2 <- boxplot(other.words_per_song, plot = F)$out
 
 # remove outliers 
 
@@ -85,7 +89,9 @@ summary(beatles.words_per_song2)
 summary(other.words_per_song2)
 
 # resulting plot
-boxplot(beatles.words_per_song2, other.words_per_song2, horizontal = T, names = c("Beatles", "Other"), xlab = "Number of words per song", col = "blue")
+hist(beatles.words_per_song, main = "Beatles Song lengths (by stemmed words) ~ deleted outliers", xlab = "Number of words in a song", col = "blue", breaks = 100)
+hist(other.words_per_song, main = "Other Song lengths (by stemmed words) ~ deleted outliers", xlab = "Number of words in a song", col = "red", breaks = 100)
+boxplot(beatles.words_per_song2, other.words_per_song2, horizontal = T, names = c("Beatles", "Other"), xlab = "Number of words per song", col = c("blue", "red"))
 ```
 
 
@@ -127,12 +133,12 @@ other.word_freq<- data.frame(word= names(f.other), freq=f.other)
 Here are the respective word clouds.
 
 ```{r}
-# wordcloud for beatles
+# wordcloud for beatles top 100 words
 set.seed(1)
 wordcloud(words = beatles.word_freq$word, freq =beatles.word_freq$freq, max.words = 100, random.order=FALSE,
           colors=brewer.pal(8, "Dark2"))
 
-# wordcloud for other
+# wordcloud for other top 100 words
 set.seed(1)
 wordcloud(words = other.word_freq$word, freq =other.word_freq$freq, max.words = 100, random.order=FALSE,  
           colors=brewer.pal(8, "Dark2"))
@@ -153,15 +159,13 @@ head(other.word_freq, 20)
 Based on the top twenty words in the respective dataframes, it seems that there is little difference between the most used words from Beatles lyrics and those of other rock groups of the sixties/seventies. 
 
 
-
 The words for the most part seem synonymous with similar frequencies; though there is an exception for "cry" (possibly invoking a negative sentiment) which is the 10th most used word in the Beatles lyrics and 20th in other bands.
 
-
-The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words. For example, in terms of frequency, Love is used 976 times in Beatles lyrics and 6432 times in other bands' lyrics; however, when looking a
+The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words. For example, in terms of frequency, Love is used 976 times in Beatles lyrics and 6432 times in other bands' lyrics; however when looking at their relative frequencies, we can see that the Beatles use love nearly twice as much as Other (.053 vs. .024).
 
 ```{r}
 
-# summation of all frequencies for each group
+# total number of words for each group
 n1<-sum(beatles.word_freq$freq)
 n2<-sum(other.word_freq$freq) 
 
@@ -178,8 +182,8 @@ data.table(cbind("Other words" = as.character(head(other.word_freq$word, 20)),
                  "r-freq" = head(other.word_freq$freq, 20)/n2))
  
 # barplots with 
-barplot(beatles.rf20, las = 1,names.arg = head(beatles.word_freq$word, 20), col = rainbow(20), horiz = T )
-barplot(other.rf20, las = 2,names.arg = head(other.word_freq$word, 20), col = rainbow(20),horiz = T )
+barplot(beatles.rf20, las = 1,names.arg = head(beatles.word_freq$word, 20), col = rainbow(20), horiz = T, main = "Relative Frequency of top 20 words in Beatles songs")
+barplot(other.rf20, las = 2,names.arg = head(other.word_freq$word, 20), col = rainbow(20),horiz = T, main = "Relative Frequency of top 20 words in Other songs")
 
 ```
 
@@ -209,8 +213,13 @@ top14 <- top14 %>%
     beatles = freq.x,
     other = freq.y
   )
+top14
+
 # relative frequency
-barplot(c(top14$beatles/n1 , top14$other/n2) ,col = c("red","blue"))
+#barplot(c(head(top14$beatles,10) , head(top14$other,10)) , las = 2,names.arg = c(
+#  as.character(head(top14$word,10)),
+#  as.character(head(top14$word,10))),col = c("red","blue"), horiz = T, 
+#  main)
 
 ```
 
@@ -245,8 +254,8 @@ Using the
 
 
 ```{r}
-plot(beatles.sentiments.nrc, type = "h")
-plot(other.sentiments.nrc, type = "h")
+plot(beatles.sentiments.nrc, type = "h", main = "Beatles nrc Sentiment plot", ylab = "Emotional index")
+plot(other.sentiments.nrc, type = "h",main = "Other nrc Sentiment plot", ylab = "Emotional index")
 ```
 
 
