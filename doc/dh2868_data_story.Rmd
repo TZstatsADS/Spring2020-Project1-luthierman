@@ -1,6 +1,10 @@
 ---
 title: "Beatles data_story"
-output: html_document
+output:
+  html_document:
+    csl: style.cls
+    df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -63,7 +67,7 @@ summary(other.words_per_song)
 boxplot(beatles.words_per_song, other.words_per_song, horizontal = T, names = c("beatles", "other"), col = "blue")
 ```
 
-Even if we remove the higher outliers, the Beatles still have a lower average number of stemmed words.
+Even if we remove the higher outliers, the Beatles still have a lower average number of stemmed words. This may imply that Beatles' songs have on average shorter lyrics.
 
 ```{r}
 
@@ -135,7 +139,7 @@ wordcloud(words = other.word_freq$word, freq =other.word_freq$freq, max.words = 
 
 ```
 
-Without evern looking at any quantitative summaries, it's clear that "love" is the most dominant word in both Beatles and Other rock groups.
+Without even looking at any quantitative summaries, it's clear that "love" is the most dominant word in both Beatles and Other rock groups.
 
 
 
@@ -148,10 +152,12 @@ head(other.word_freq, 20)
 
 Based on the top twenty words in the respective dataframes, it seems that there is little difference between the most used words from Beatles lyrics and those of other rock groups of the sixties/seventies. 
 
+
+
 The words for the most part seem synonymous with similar frequencies; though there is an exception for "cry" (possibly invoking a negative sentiment) which is the 10th most used word in the Beatles lyrics and 20th in other bands.
 
 
-The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words.
+The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words. For example, in terms of frequency, Love is used 976 times in Beatles lyrics and 6432 times in other bands' lyrics; however, when looking a
 
 ```{r}
 
@@ -177,15 +183,17 @@ barplot(other.rf20, las = 2,names.arg = head(other.word_freq$word, 20), col = ra
 
 ```
 
+Perhaps a more direct comparison will help.
+
 ```{r}
 
 # save top 50 words as character strings
 
-a<- as.character(head(beatles.word_freq$word, 50))  
-b <- as.character(head(other.word_freq$word, 50)) 
+a<- as.character(head(beatles.word_freq$word, 20))  
+b <- as.character(head(other.word_freq$word, 20)) 
 
 # intersection of common popular words for beatles and other
-v<- a[a %in% b]
+v<- a[a %in% b] # 14 words
 
 # return in each group the word 
 o<-other.word_freq %>% 
@@ -195,51 +203,98 @@ b<-beatles.word_freq %>%
   filter( word %in% v) 
 
 # merge frequencies by words
-top33 <- merge(b, o, by="word")
-
-barplot(top33$freq.x)
-barplot(top33$freq.y)
+top14 <- merge(b, o, by="word")  
+top14 <- top14 %>% 
+  rename(
+    beatles = freq.x,
+    other = freq.y
+  )
+# relative frequency
+barplot(c(top14$beatles/n1 , top14$other/n2) ,col = c("red","blue"))
 
 ```
 
 
+
+
+SENTIMENT ANALYSIS
+
+
+Now, let's take a look at the sentiments of the different groups' lyrics.
+
+I'm using the Syuzhet package (with nrc lexicon) on the stemmed words and plotting on histograms to see the general shape of the distribution and boxplot for spread.
+
+Though the sizes are vastly different, the general shapes of the distributions are similar and more or less concentrated at 0. The sentiments of other, according to the boxplot, do seem to have a wider spread, indicating more variation in emotional extremes.
 
 ```{r}
 
+beatles.sentiments.nrc <- get_sentiment(beatles_lyrics$stemmedwords, method = "nrc", language = "english")
+other.sentiments.nrc <- get_sentiment(other_lyrics$stemmedwords, method = "nrc", language = "english")
 
-# piecharts 
+hist(beatles.sentiments.nrc, xlab = "Emotion index (nrc)", main = "Histogram of Beatles Sentiments", col = "blue")
+hist(other.sentiments.nrc, xlab = "Emotion index (nrc)", main = "Histogram of Other Sentiments", col = "red")
 
-#please note that the proportions in these pie charts are based on the number of frequencies in the top 20 words, not the whole data set
-
-plot_ly(head(beatles.word_freq, 20 ), labels= ~word, values = ~freq, type = "pie") %>% 
-  layout(title = 'Beatles Top 20 Words in Lyrics',
-         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
-  
-plot_ly(head(other.word_freq,20) , labels= ~word, values = ~freq, type = "pie") %>% 
-  layout(title = 'Other Rock Bands Top 20 Words in Lyrics',
-         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
 ```
-
-
-
-Sentiment analysis using "afinn" lexicon
 
 ```{r}
-beatles.word_freq %>% 
-  inner_join(get_sentiments("afinn")) %>%
-  group_by(word) %>% 
-  ggplot(aes(x = value, y = freq)) + 
-  geom_bar(stat = "identity", alpha = 0.8)
-
-  
+boxplot(beatles.sentiments.nrc, other.sentiments.nrc, horizontal = T, names = c("beatles", "other"), col = c("blue", "red"), xlab = "Emotion index (nrc)")
 ```
 
+
+Using the 
 
 
 ```{r}
-beatles.sentiments <- get_nrc_sentiment(beatles_lyrics$stemmedwords)
+plot(beatles.sentiments.nrc, type = "h")
+plot(other.sentiments.nrc, type = "h")
 ```
+
+
+Even a piechart does not indicate a significant difference between the Beatles and other bands of its time, though they are slightly more positive than other bands.
+
+```{r}
+# emotion vector
+emotions <- c("anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust", "negative", "positive")
+# set sentiments to dataframe
+beatles.sentiments.pie  <- data.frame(sentiments = colSums(get_nrc_sentiment(beatles_lyrics$stemmedwords)))
+# this one may take a minute
+other.sentiments.pie  <- data.frame(sentiments = colSums(get_nrc_sentiment(other_lyrics$stemmedwords)))
+
+
+```
+
+
+```{r}
+# set emotions to dataframes of sentiments
+beatles.sentiments.pie$emotions <- emotions
+other.sentiments.pie$emotions <- emotions
+# print out the sentiments for direct comparison
+beatles.sentiments.pie
+other.sentiments.pie
+
+# piechart 
+plot_ly() %>%
+  add_pie(data = beatles.sentiments.pie, labels =  emotions, values = ~sentiments,
+          name = "Beatles", domain = list(x = c(0, 0.4), y = c(0.4, 1))) %>%
+  add_pie(data = other.sentiments.pie, labels =  emotions, values = ~sentiments,
+          name = "Other", domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
+  layout(title = "Sentiments Pie Charts", showlegend = T,
+         xaxis = list(showgrid = F, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = F, zeroline = FALSE, showticklabels = FALSE))
+
+
+```
+
+
+
+
+Conclusion:
+
+- On average, when compared to other rock bands formed between 1960-1970, Beatles lyrics tend to be shorter than those of their counterparts.
+
+- The most dominant words include love, baby, cry, and girl, which is not uncommon, though the Beatles do use cry relatively more than other bands.
+
+- According to the piechart, the only difference between the Beatles and other bands is that the Beatles are slightly more positive and that other bands have a greater variance in emotional extremes.
+
 
 
