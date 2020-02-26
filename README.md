@@ -2,11 +2,9 @@
 ## Spring 2020
 ## Project 1: A "data story" on the songs of our times
 
-<<<<<<< HEAD
-<img src="figs/beatles.jpeg", width=620>
-=======
-<img src="figs/beatles.jpeg" width="500">
->>>>>>> cf1ad3bce26b45a685a5a8d1f0e9cc2a7731400f
+
+<img src="figs/beatles.jpeg", width=500>
+
 
 ### [Project Description](doc/)
 This is the first and only *individual* (as opposed to *team*) this semester. 
