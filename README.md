@@ -3,7 +3,7 @@
 ## Project 1: A "data story" on the songs of our times
 
 
-<img src="figs/beatles.jpeg", width=500>
+<img src="figs/beatles.jpeg" width=500>
 
 
 ### [Project Description](doc/)
