@@ -40,43 +40,49 @@ artists_60_70s<- artists %>%
   filter(Formed %in% c(1960:1970)) %>% 
   select(Artist)
 
-bealtes_lyrics <- dt_lyrics %>% 
+beatles_lyrics <- dt_lyrics %>% 
   filter(artist =="beatles" & genre == "Rock")
 
 other_lyrics <- dt_lyrics %>% 
   filter(artist %in% artists_60_70s$Artist & genre == "Rock" & artist != "beatles") 
 ```
 
-When comparing the number of stemmed words per song for each group, it seems that the Beatles have a lower average count (51) than similar rock bands (63).  This could imply that the beatles overal
+When comparing the number of stemmed words per song for each group, it seems that the Beatles have a lower average count (51) than similar rock bands (63). But what if the other bands' distribution is skewed by outliers?
 
 ```{r}
-
 # the number of stemmed words in each song by group
-beatles.words_by_song <- sort(sapply(strsplit(beatles_lyrics$stemmedwords, " "), length))
-other.words_by_song <- sort(sapply(strsplit(other_lyrics$stemmedwords, " "), length))
+beatles.words_per_song <- sort(sapply(strsplit(beatles_lyrics$stemmedwords, " "), length))
+other.words_per_song <- sort(sapply(strsplit(other_lyrics$stemmedwords, " "), length))
 
 
 # mean, median, and spread
-summary(beatles.words_by_song)
-summary(other.words_by_song)
+summary(beatles.words_per_song)
+summary(other.words_per_song)
 
 # resulting plot
-boxplot(beatles.words_by_song, other.words_by_song, horizontal = T, names = c("beatles", "other"))
-
+boxplot(beatles.words_per_song, other.words_per_song, horizontal = T, names = c("beatles", "other"), col = "blue")
 ```
+
+Even if we remove the higher outliers, the Beatles still have a lower average number of stemmed words.
 
 ```{r}
-other.words_by_song <- other.words_by_song[other.words_by_song < max(other.words_by_song)]
-other.words_by_song <- other.words_by_song[other.words_by_song < max(other.words_by_song)]
 
+
+# finding outliers for each group
+outliers1 <- boxplot(beatles.words_per_song)$out
+outliers2 <- boxplot(other.words_per_song)$out
+
+# remove outliers 
+
+beatles.words_per_song2 <- beatles.words_per_song[-which(beatles.words_per_song %in% outliers1)]
+other.words_per_song2 <-  other.words_per_song[-which(other.words_per_song %in% outliers2)]
 # mean, median, and spread
-summary(beatles.words_by_song)
-summary(other.words_by_song)
+summary(beatles.words_per_song2)
+summary(other.words_per_song2)
 
 # resulting plot
-boxplot(beatles.words_by_song, other.words_by_song, horizontal = T, names = c("beatles", "other"))
+boxplot(beatles.words_per_song2, other.words_per_song2, horizontal = T, names = c("Beatles", "Other"), xlab = "Number of words per song", col = "blue")
 ```
-
 
 
 Next, I'll convert the given stemmed words into a corpus and then a term document matrix, since the data was already processed and cleaned.
@@ -114,10 +120,6 @@ other.word_freq<- data.frame(word= names(f.other), freq=f.other)
 ```
 
 
-
-
-
-
 Here are the respective word clouds.
 
 ```{r}
@@ -149,7 +151,7 @@ Based on the top twenty words in the respective dataframes, it seems that there 
 The words for the most part seem synonymous with similar frequencies; though there is an exception for "cry" (possibly invoking a negative sentiment) which is the 10th most used word in the Beatles lyrics and 20th in other bands.
 
 
-The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words. Ignoring the different words, overall, the Beatles seem to have a relatively higher count of words than other over their respective data sets (bar plots and relative frequency table), but the distribution of other seems to have wider variation with more values being spread out amongst higher values.
+The relative frequency in the bar plots, table, boxplots and piecharts indicate there is some difference in the distributions of the Beatles words.
 
 ```{r}
 
@@ -162,19 +164,44 @@ beatles.rf20 <- round(head(beatles.word_freq$freq, 20)/n1, 3)
 other.rf20 <- round(head(other.word_freq$freq, 20)/n2, 3)
 
 # relative frequency table
-data.table(cbind(beatles.rf20, other.rf20))
-
-
+data.table(cbind("Beatle words" = as.character(head(beatles.word_freq$word, 20)), 
+                 "freq" = head(beatles.word_freq$freq, 20),
+                 "r-freq" = head(beatles.word_freq$freq, 20)/n1))
+data.table(cbind("Other words" = as.character(head(other.word_freq$word, 20)),
+                 "freq" = head(other.word_freq$freq, 20),
+                 "r-freq" = head(other.word_freq$freq, 20)/n2))
+ 
 # barplots with 
-barplot(beatles.rf20, las = 1,names.arg = head(beatles.word_freq$word, 20), col = rainbow(50), horiz = T )
-barplot(other.rf20, las = 2,names.arg = head(other.word_freq$word, 20), col = rainbow(50),horiz = T )
+barplot(beatles.rf20, las = 1,names.arg = head(beatles.word_freq$word, 20), col = rainbow(20), horiz = T )
+barplot(other.rf20, las = 2,names.arg = head(other.word_freq$word, 20), col = rainbow(20),horiz = T )
 
 ```
-
 
 ```{r}
 
+# save top 50 words as character strings
+
+a<- as.character(head(beatles.word_freq$word, 50))  
+b <- as.character(head(other.word_freq$word, 50)) 
+
+# intersection of common popular words for beatles and other
+v<- a[a %in% b]
+
+# return in each group the word 
+o<-other.word_freq %>% 
+  filter(word %in% v) 
+
+b<-beatles.word_freq %>% 
+  filter( word %in% v) 
+
+# merge frequencies by words
+top33 <- merge(b, o, by="word")
+
+barplot(top33$freq.x)
+barplot(top33$freq.y)
+
 ```
+
 
 
 ```{r}
@@ -195,25 +222,6 @@ plot_ly(head(other.word_freq,20) , labels= ~word, values = ~freq, type = "pie") 
          yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
 ```
 
-
-
-
-```{r}
-x<- beatles.word_freq$freq
-y<- other.word_freq$freq
-
-#plot(x, col = "blue")
-#points(y, col = "red")
-
-#plot(x/n1, col = "blue")
-#points(y/n2, col = "red")
-
-# frequency boxplot 
-boxplot(x, y, xlab = "Word Frequency Boxplot", ylab= "Frequency", names = c("Beatles", "Other"), horizontal = T)
-
-# relative frequency boxplot
-boxplot(x/n1, y/n2,xlab = "Word Relative Frequency Boxplot", ylab = "Relative Frequency",names = c("Beatles", "Other"), horizontal = T)
-```
 
 
 Sentiment analysis using "afinn" lexicon
